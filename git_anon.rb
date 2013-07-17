@@ -1,11 +1,20 @@
 require 'grit'
 require 'yaml'
+require './git_user'
 
 class GitAnon
   DEFAULT_CONFIG_NAME = ".gitanon"
+  attr_reader :config_filename, :source_repo #, :destination_repo
 
-  def initialize(filename = nil)
-    load_config(filename)
+  def initialize(filename_or_hash = nil)
+    if filename_or_hash.is_a?(Hash)
+      @config = filename_or_hash
+      @source_repo = @config['source_repo'] if valid_source_repo?(@config['source_repo'])
+      @destination_repo = @config['destination_repo']
+    else
+      @config = {}
+      load_config(filename_or_hash)
+    end
   end
 
   def anonymize
@@ -16,8 +25,8 @@ class GitAnon
       collect_object_names
       verify_object_aliases
     else
-      ask_for('source_repo')
       ask_for('destination_repo')
+      ask_for('source_repo')
       collect_branches
       collect_users
       verify_user_aliases
@@ -42,9 +51,11 @@ class GitAnon
         YAML.load_file(filename)
       rescue
         {}
-      end
+    end
+    puts @config.inspect
   end
   def save_config
+    puts "saving #{@config.inspect}"
     if @config_filename
       File.open(@config_filename, 'w') {|f| f.write YAML.dump_stream(@config) }
     end
@@ -69,7 +80,7 @@ class GitAnon
     prompt_method = "prompt_for_#{field}"
     validate_method = "valid_#{field}?"
     msg = respond_to?(prompt_method) ? self.send(prompt_method) : field.capitalize.gsub(/_/,' ')
-    current = @config[field.to_s]
+    current = @config[field]
     valid = false
     until valid do
       print "#{msg}: [#{current}] "
@@ -106,6 +117,7 @@ class GitAnon
       nil
     end
     load_config(File.join(value, DEFAULT_CONFIG_NAME)) if @dst_repo
+    @dst_repo
   end
 
   def collect_branches
@@ -113,7 +125,11 @@ class GitAnon
   end
 
   def collect_users
-
+    num_commits = @src_repo.commit_count
+    (num_commits - 1).downto(0) do |idx|
+      commit = @src_repo.commits('master', 1, idx)
+      GitUser.user_for_commit(commit.first)
+    end
   end
 
   def verify_user_aliases
@@ -133,8 +149,8 @@ class GitAnon
   end
 
   def update_user_stats
-    
+
   end
 end
 
-GitAnon.new(ARGV[0]).anonymize
+#GitAnon.new(ARGV[0]).anonymize
