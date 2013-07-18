@@ -4,7 +4,7 @@ require './git_user'
 
 class GitAnon
   DEFAULT_CONFIG_NAME = ".gitanon"
-  attr_reader :config_filename, :source_repo #, :destination_repo
+  attr_reader :config_filename, :source_repo, :users
 
   def initialize(filename_or_hash = nil)
     if filename_or_hash.is_a?(Hash)
@@ -130,6 +130,8 @@ class GitAnon
       commit = @src_repo.commits('master', 1, idx)
       GitUser.user_for_commit(commit.first)
     end
+    @users = GitUser.users
+    @config['users'] = @users
   end
 
   def verify_user_aliases

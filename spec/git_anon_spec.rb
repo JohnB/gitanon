@@ -25,6 +25,7 @@ describe GitAnon do
       lambda do
         ga.collect_users
       end.should_not raise_error
+      ga.users.should be
     end
   end
 end
