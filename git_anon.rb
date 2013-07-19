@@ -1,6 +1,6 @@
 require 'grit'
 require 'yaml'
-require './git_user'
+require File.dirname(__FILE__) + '/git_user'
 
 class GitAnon
   DEFAULT_CONFIG_NAME = ".gitanon"
@@ -39,7 +39,7 @@ class GitAnon
       collect_object_names
       verify_object_aliases
     end
-    @src_branches.each do |branch|
+    branches.each do |branch|
       copy_branch(branch)
     end
     update_user_stats
@@ -110,25 +110,27 @@ class GitAnon
   end
 
   def valid_destination_repo?(value)
-    @dst_repo = begin
-      Grit::Repo.new(value)
-    rescue
-      err_feedback("'#{value}' doesn't seem to be a git repo")
-      nil
-    end
+    @dst_repo = Grit::Repo.init_bare_or_open(value)
     load_config(File.join(value, DEFAULT_CONFIG_NAME)) if @dst_repo
     @dst_repo
   end
 
   def collect_branches
-    @src_branches = @src_repo.branches
+    branches
+  end
+
+  def branches
+    @src_branches ||= @src_repo.branches || []
   end
 
   def collect_users
-    num_commits = @src_repo.commit_count
-    (num_commits - 1).downto(0) do |idx|
-      commit = @src_repo.commits('master', 1, idx)
-      GitUser.user_for_commit(commit.first)
+    branches.each do |branch|
+      name = branch.name
+      num_commits = @src_repo.commit_count(name)
+      (num_commits - 1).downto(0) do |idx|
+        commit = @src_repo.commits(name, 1, idx)
+        GitUser.user_for_commit(commit.first)
+      end
     end
     @users = GitUser.users
     @config['users'] = @users
