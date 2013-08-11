@@ -28,6 +28,7 @@ describe Deluminator do
       d.reserved.length.should == 6
     end
   end
+
   describe 'add_to_dictionary' do
     before do
       @deluminator = Deluminator.new( {:length_indexed_dict => {5 => {"hello" => "world"}}})
@@ -63,47 +64,60 @@ describe Deluminator do
       end
 
     end
-    it "should not add too-short items to the dictionary"
+    it "should not add too-short items to the dictionary" do
+      @deluminator.add_to_dictionary("a bb ccc dddd eeeee")
+      @deluminator.dictionary["a"].should be_nil
+      @deluminator.dictionary["bb"].should be_nil
+      @deluminator.dictionary["ccc"].should be_nil
+      # 3 is too short (or whatever MIN_DICTIONARY_LENGTH is)
+      @deluminator.dictionary["dddd"].should_not be_nil
+      @deluminator.dictionary["eeeee"].should_not be_nil
+    end
   end
-  #describe 'deluminate' do
-  #  before do
-  #    @text = "
-  #      # describe do_something_useful here:
-  #      # it bamboozles the ferlang without augmenting glerk!
-  #      def do_something_useful(arg1,argn)
-  #        argn.collect {|item| item * arg1 }
-  #      end
-  #    "
-  #    @junk = Deluminator.new(@text).obfuscate
-  #    @junk = @text
-  #    puts @junk
-  #  end
-  #  it "should result in the same length of data" do
-  #    @text.length.should == @junk.length
-  #  end
-  #  it "should have line breaks at the same positions" do
-  #    text_lines = @text.split("\n")
-  #    junk_lines = @junk.split("\n")
-  #    text_lines.length.should == junk_lines.length.should
-  #    text_lines.each_with_index do |str, idx|
-  #      str.length.should == junk_lines[idx].length
-  #    end
-  #  end
-  #
-  #  %w(def end collect describe this).each do |keyword|
-  #    it "should leave '#{keyword}' unchanged" do
-  #      @junk.should =~ Regexp.new(keyword)
-  #    end
-  #  end
-  #  %w(the x y dir el).each do |shortword|
-  #    it "should leave short words like '#{shortword}' unchanged" do
-  #      @junk.should =~ Regexp.new(shortword)
-  #    end
-  #  end
-  #  %w(method do_something_useful arg1 argn item bamboozles ferlang without augmenting glerk).each do |sensitive_word|
-  #    it "should replace '#{sensitive_word}' with gibberish" do
-  #      @junk.should_not =~ Regexp.new(sensitive_word)
-  #    end
-  #  end
-  #end
+
+  describe 'deluminate' do
+    before do
+      @text = "
+        # describe the do_something_useful method here:
+        # it bamboozles the ferlang without augmenting glerk!
+        # and the x and y values should be passed to dir()
+        def do_something_useful(arg1,argn)
+          argn.collect {|item| item * arg1 }
+        end
+      "
+      @deluminator = Deluminator.new( {:reserved => %w(def class if else elsif end collect describe)} )
+      @deluminator.add_to_dictionary(@text)
+      @result = @deluminator.deluminate(@text)
+      #puts @deluminator.dictionary.inspect
+      #puts @result
+      @result.is_a?(String).should == true
+    end
+    it "should result in the same length of data" do
+      @text.length.should == @result.length
+    end
+    it "should have line breaks at the same positions" do
+      text_lines = @text.split("\n")
+      junk_lines = @result.split("\n")
+      text_lines.length.should == junk_lines.length.should
+      text_lines.each_with_index do |str, idx|
+        str.length.should == junk_lines[idx].length
+      end
+    end
+
+    %w(def end collect describe).each do |keyword|
+      it "should leave '#{keyword}' unchanged" do
+        @result.should =~ Regexp.new(keyword)
+      end
+    end
+    %w(and the x y be to dir arg).each do |shortword|
+      it "should leave short words like '#{shortword}' unchanged" do
+        @result.should =~ Regexp.new(shortword)
+      end
+    end
+    %w(method do_something_useful argn item bamboozles ferlang without augmenting glerk).each do |sensitive_word|
+      it "should replace '#{sensitive_word}' with gibberish" do
+        @result.should_not =~ Regexp.new(sensitive_word)
+      end
+    end
+  end
 end
