@@ -1,3 +1,8 @@
+# USAGE:
+#   ruby -r ./git_anon.rb -e 'GitAnon.new("../grit_anon/.gitanon").anonymize'
+#
+#
+#
 require 'grit'
 require 'yaml'
 require File.dirname(__FILE__) + '/git_user'
@@ -156,5 +161,3 @@ class GitAnon
 
   end
 end
-
-#GitAnon.new(ARGV[0]).anonymize
